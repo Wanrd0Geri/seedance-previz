@@ -48,7 +48,7 @@ import previz_lib as pv; importlib.reload(pv)
 result = pv.setup_workbench(res=(1280, 544), fps=24, sun_dir=(-0.6, 0.75, 0.3), frame_range=(1, 480))
 ```
 
-每次 `bl_execute` 都从前四行开头：同一个 Blender 进程里模块已加载，重复 import 不会重建场景；进程重连后 sys.path 会丢。
+每次 `bl_execute` 都从前四行开头：同一个 Blender 进程里模块已加载，重复 import 不会重建场景；进程重连后 sys.path 会丢。`previz_lib.py` 的自测会清场景，只在命令行空白会话里跑；Higgs 会话里照常 import 和调用，只是不跑自测。
 
 ④ **搭建或导入。** 先按路线读 Higgs 模块（第 5 节）。A：`bl_import_model` 导入副本，量尺寸，归一化到米。B：按 `references/proxies.md`，用 `mk_box / mk_sphere / mk_cyl / roof / stairs` 搭场景，`torso_proxy` 做角色。
 
@@ -75,7 +75,7 @@ result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>
 - A：blender-volatile、blender-lighting-camera（只读相机关）、blender-animation、blender-greybox（只读本地导出）、blender-audit-finalize。
 - B：A 的全部，加 blender-scene-spec、blender-modeling（前五关）、blender-greybox（代理体与每镜记录）；室内再加 blender-camera-blocking（首次会装扩展，先问用户）。
 
-只读要用的段，不整份读全部模块。模块里的云端工具名（`bl_render_motion_reference`、`bl_audit_motion` 等）本地没有，按 blender-volatile 的对照表换本地做法。
+只读要用的段，不整份读全部模块。模块里的云端工具名（`bl_render_motion_reference`、`bl_audit_motion` 等）本地没有，按 blender-volatile 的对照表换本地做法。blender-generation 只在用户点名时走（会花积分）；装 Blender 扩展或改偏好设置先问用户。
 
 ## 6 交付
 
@@ -92,14 +92,3 @@ result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>
 1. **自查结果**：check_export 的结论；不通过项逐条列，人工项写看过没有。
 2. **几何问题**：按分镜写的机位在白模里做不到的（被挡、看不见、比例对不上），写成"机位 → 实际看到什么 → 建议改法"。例：猿三案例镜2，按稿写的机位被主殿屋檐挡住站在正脊上的主角。
 3. **风险**：带四肢的镜、偏小的主体、超标的颜色、没验证过的写法。
-
-## 7 禁止
-
-- 改 aigc-video 的任何文件。
-- 往桌面写东西。
-- 动用户精模的原文件；只导入副本。
-- 用户没要求就花积分生成 3D（blender-generation 只在用户点名时走）。
-- 没经用户同意装 Blender 扩展或改偏好设置。
-- 没用 Read 看过渲染图就说"检查过了"。
-- 把 Higgs 模块里的云端工具名当成能调用的工具。
-- 在 Higgs 会话里跑 `previz_lib.py` 的自测。自测会清场景，只在命令行空白会话里跑。
