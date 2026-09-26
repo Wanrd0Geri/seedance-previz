@@ -26,7 +26,7 @@ description: 用 Blender（Higgsfield blender MCP）搭 Seedance 2.5 白模预�
 细则和来源在 `references/seedance-whitebox-rules.md`，这里只列底线：
 
 1. 粗白模的角色不带四肢和翅膀，只留躯体。带了就得在提示词里写全四肢动作序列，否则成片僵化（官方手册）。
-2. 颜色用中性灰阶或近服装色，饱和度 ≤0.3。白模颜色会渗进成片（外部实测）。
+2. 颜色默认中性灰阶或近服装色，饱和度 ≤0.3（白模颜色会渗进成片，外部实测）。用户指定鲜明分色就照做：自查加 vivid 只报警告，交接卡加一句"服装颜色以参考图为准"。
 3. 每镜主体画高 ≥ 一成，而且要动（本镜位移 ≥ 半个身高）。又小又不动会被整个丢掉（外部实测，L121）。
 4. 轨迹线、坐标轴、相机框、overlay 全关。官方要求细颗粒度上传前去掉，粗的照样关。
 5. 一盏主光带投影，方向 = 成片的光向。模型会从白模读光源方向、色温和投影（官方）。
@@ -66,9 +66,9 @@ import check_export as ce; importlib.reload(ce)
 result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>-<n>.json", grain="coarse")
 ```
 
-⑦ **导出**（`references/export-verify.md`）。分批渲 png 序列 → 在主机上跑 `scripts/encode.sh` 出 mp4、逐秒拼图、首中末帧 → 打开看两张图。
+⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖，不按版本另建目录；只改了一镜就只重渲那一镜的帧段。在主机上跑 `scripts/encode.sh` 出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
 
-⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。
+⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。定稿后清目录：`frames/` 和过程版（旧版 .blend、.blend1、改镜片段、字幕版、桌面副本）`mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`，交付目录只留最终 .blend、mp4、卡片、自查。
 
 ## 5 Higgs 模块怎么读
 
@@ -84,10 +84,13 @@ result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>
 放项目文件夹，和分镜稿同级建 `白模_<片名>/`。不知道项目文件夹在哪就问。
 
 - `<片名>_白模_<YYMMDD>-<n>.blend`
-- `<片名>_白模运镜_<YYMMDD>-<n>.mp4`，同名 `_逐秒.png`、`_首中末.png`
+- `<片名>_白模运镜_<YYMMDD>-<n>.mp4`（全片，干净）和分段 `<片名>_<段名>_白模运镜_…mp4`（上传用，不带字幕），各带同名 `_逐秒.png`、`_首中末.png`
+- `<片名>_审看_<YYMMDD>-<n>.mp4`：字幕卡在说话帧、左上角镜号，只给用户审 layout，不上传
 - `<片名>_任务卡_<YYMMDD>-<n>.md`、`<片名>_交接卡_<YYMMDD>-<n>.md`
 - `<片名>_自查_<YYMMDD>-<n>.json`（check_export 输出）
-- png 序列放 `白模_<片名>/frames/`；mp4 核对无误后，这个文件夹可以删。
+- png 序列只放 `白模_<片名>/frames/` 一套。mp4 合成、逐秒图和首中末图看过之后，把 `frames/` 挪进废纸篓（收尾必做，一版帧 1 GB 上下，14 版就 30 GB）。
+
+定稿后目录里只有最终一版：.blend、全片 mp4、分段 mp4、审看版、两张卡、自查 json。过程版全部挪进废纸篓，不留在同步空间。
 
 汇报三块：
 

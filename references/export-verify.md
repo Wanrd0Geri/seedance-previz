@@ -4,9 +4,10 @@
 
 `pv.setup_workbench(res, fps, sun_dir, frame_range)` 一次设好：
 
-- Workbench 渲染器；物体色（OBJECT）；投影开；cavity 开；高光关；景深关。
+- Workbench 渲染器；物体色（OBJECT）；投影开；cavity 开；高光关。景深按镜头开（camera-moves.md 第 7 节），setup_workbench 不碰它。
 - 视图变换 Standard：颜色按写进去的出，不被 AgX 压暗偏色。
 - 摄影棚光改世界坐标，转到太阳方位：切镜后亮面不换边。要纯平光传 `light="FLAT"`。
+- 逆光看不清：传 `shadow_intensity=0.4`；再不行传 `follow_camera=True`（摄影棚光跟相机走，投影方向仍按 sun_dir 固定；check_export 只记备注）。仰拍底面全黑传 `studio_light="studio.sl"`。旧场景是材质色：默认 `adopt_material_colors=True` 会把材质色抄进物体色，不会渲成全白。
 - 背景用世界色，默认中性灰。png、RGB、8 位；stamp 关。
 - 建 `LGT_sun` 记录光向。
 
@@ -32,6 +33,13 @@ fps 24。单段 ≤30 s，即 ≤720 帧。
 
 ## 3 导出
 
+帧目录规矩（E02S08 堆到 32 GB 的教训）：
+- 全程一个 `frames/`，每版覆盖同名文件，不建 frames_v2、frames_v3。
+- 只改了一镜，就把 A、B 设成那一镜的帧段重渲，覆盖进同一目录再合成（一镜约 1 分钟）。
+- 分段上传的 mp4 不复制、不软链帧：encode.sh 传首帧、末帧就行。
+- 审看版不渲帧：见第 7 节。
+- mp4 合成并看过逐秒图、首中末图后，`frames/` 挪进废纸篓：`mv "<白模目录>/frames" ~/.Trash/<片名>_frames_<YYMMDD>`。
+
 在 Higgs 的 bl_execute 里分批渲 png，一次一批，别让单次调用太长。超时用 bl_job_status 查，别盲目重跑（blender-scene）：
 
 ```python
@@ -53,6 +61,8 @@ result = {"rendered": [A, B]}
 ```bash
 bash ~/Documents/Codex/seedance-previz/scripts/encode.sh "<白模目录>/frames" "<白模目录>/<片名>_白模运镜_<YYMMDD>-<n>.mp4" 24
 ```
+
+分段：末尾加首帧、末帧，如 `… 24 546 876` 只收这段帧号（用全片帧号，输出的 mp4 从第 1 帧起）。
 
 encode.sh 做的事：
 
@@ -77,8 +87,11 @@ encode.sh 做的事：
 
 读报告：
 
-- 结论三档：不通过 / 有警告 / 通过。不通过要修，修不了写进交接卡风险栏并告诉用户。
-- 画高按包围盒投影算，比像素量偏大一点；很大的物体贴着画框边时，可能被算成在画内。拿不准就看渲染图。
+- 不通过要修，修不了写进交接卡风险栏并告诉用户。
+- 画高默认按像素量算（`frame_stats` 掩码渲染，每镜起中末三帧各渲一张小图）；`pixel=False` 退回包围盒投影，偏大一点。JSON 里两种都有。
+- 结论分四档：不通过 / 警告 / 备注 / 通过。备注不影响结论：够大但不动的角色（对白镜、静止巨物）、段外的标记（分段自查时正常）、摄影棚光跟相机走（setup_workbench 传了 follow_camera）。
+- 分段自查：`ce.run(frame_range=(546, 876))`，命令行 `--range 546 876`，查完恢复场景帧范围。
+- 用户指定鲜明色：`ce.run(vivid=True)`，命令行 `--vivid`，③ 改报警告。
 - 位移 = 角色包围盒中心在世界里挪了多远 ÷ 身高。原地转身、只动胳膊不算位移。
 - 旧场景没按 `CHR_` 命名：命令行加 `--chr 名1,名2`，或 `ce.run(chr_names=[...])`，指定角色根物体。
 - 四肢和辅助物体只算会渲出来的：用 hide_render 藏起来就不报。旧白模去四肢可以这样改。
@@ -110,3 +123,20 @@ bash $S/encode.sh /tmp/seedance-previz-selftest/frames /tmp/seedance-previz-self
 - 第一条打印 `SELFTEST OK`，渲出 frame_0001.png、frame_0037.png，存 selftest.blend；失败时进程非零退出。
 - 第二条报"不通过"：CHR_Limbed_图2 带四肢、颜色 0.92；CHR_Tiny_图3 太小又不动；CHR_Hero_图1 通过。
 - 第三条只有"时长"不通过（2 帧只有 0.08 s），`_逐秒.png`、`_首中末.png` 都生成。
+
+## 7 审看版
+
+layout 没定稿前只交 .blend 和审看版。审看版 = 干净 mp4 叠字幕和镜号，直接出 mp4，不渲帧（Blender 剪辑器，2026-09-27 试过）：
+
+```python
+# bl_execute 里
+result = pv.burn_subs("<白模目录>/<片名>_白模运镜_<YYMMDD>-<n>.mp4",
+                      "<白模目录>/<片名>_审看_<YYMMDD>-<n>.mp4",
+                      phrases=[(196, 211, "芳儿姐", "曲叔，"), ...],
+                      cuts=[("1", 1, 96), ("2", 97, 216), ...])
+```
+
+- 字幕按短句卡在说话的帧上（一句话拆成短句，各有起止帧），底部居中，"说话人：短句"，白字黑边、半透明黑底；镜号左上角。用户靠它对说话节奏，软字幕轨不够用。
+- 帧号按 mp4 的第 1 帧 = 1；给分段 mp4 烧字幕就传 offset=段首全片帧号 − 1。
+- 定稿交付的分段不带字幕（用户 2026-09-27"去掉字幕"）；审看版全片超过 30 s 不上传。
+- 本机 ffmpeg 没有 drawtext / subtitles 滤镜，别往那条路试。

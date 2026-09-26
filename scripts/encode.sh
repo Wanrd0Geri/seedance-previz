@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
-# encode.sh <png目录> <输出.mp4> [fps，默认 24]
+# encode.sh <png目录> <输出.mp4> [fps，默认 24] [首帧 末帧]
 # png 序列 → h264 mp4（yuv420p，crf 18）→ ffprobe 核对并按 Seedance 上传限制打分
 # → 同名 _逐秒.png（每秒一格拼图）和 _首中末.png（从 mp4 解出的首帧、中帧、末帧）。
 # 只收文件名以数字结尾的 png（frame_0001.png），按数字排序；帧号有缺口会提示。
+# 分段：末尾再给首帧、末帧（全片帧号，两个都给才生效），只收这段帧；输出的 mp4 从第 1 帧起，帧不复制、不另建目录。
 set -euo pipefail
 
-usage() { echo "用法：encode.sh <png目录> <输出.mp4> [fps，默认 24]" >&2; exit 2; }
-[ $# -ge 2 ] || usage
+usage() { echo "用法：encode.sh <png目录> <输出.mp4> [fps，默认 24] [首帧 末帧]" >&2; exit 2; }
+[ $# -ge 2 ] && [ $# -le 5 ] && [ $# -ne 4 ] || usage
 IN_DIR=$1
 OUT=$2
 FPS=${3:-24}
+SEG_A=${4:-}
+SEG_B=${5:-}
 command -v ffmpeg >/dev/null || { echo "找不到 ffmpeg" >&2; exit 3; }
 command -v ffprobe >/dev/null || { echo "找不到 ffprobe" >&2; exit 3; }
 [ -d "$IN_DIR" ] || { echo "不是目录：$IN_DIR" >&2; exit 2; }
 case "$OUT" in *.mp4|*.MP4) ;; *) echo "输出要是 .mp4：$OUT" >&2; exit 2 ;; esac
 case "$FPS" in ''|*[!0-9]*) echo "fps 要是整数：$FPS" >&2; exit 2 ;; esac
+if [ -n "$SEG_A" ]; then
+  case "$SEG_A" in *[!0-9]*) echo "首帧要是整数：$SEG_A" >&2; exit 2 ;; esac
+  case "$SEG_B" in ''|*[!0-9]*) echo "末帧要是整数：$SEG_B" >&2; exit 2 ;; esac
+  [ "$SEG_A" -le "$SEG_B" ] || { echo "首帧 $SEG_A 大于末帧 $SEG_B" >&2; exit 2; }
+fi
 
 OUT_DIR=$(cd "$(dirname "$OUT")" 2>/dev/null && pwd || true)
 if [ -z "$OUT_DIR" ]; then mkdir -p "$(dirname "$OUT")"; OUT_DIR=$(cd "$(dirname "$OUT")" && pwd); fi
@@ -28,6 +36,10 @@ LIST=$(cd "$IN_DIR" && ls -1 | grep -E '[0-9]+\.png$' \
   | awk '{ s=$0; sub(/\.png$/, "", s); match(s, /[0-9]+$/); print substr(s, RSTART) + 0 "\t" $0 }' \
   | sort -n -k1,1 || true)
 [ -n "$LIST" ] || { echo "目录里没有以数字结尾的 png：$IN_DIR" >&2; exit 2; }
+if [ -n "$SEG_A" ]; then
+  LIST=$(printf '%s\n' "$LIST" | awk -F '\t' -v a="$SEG_A" -v b="$SEG_B" '$1 + 0 >= a + 0 && $1 + 0 <= b + 0' || true)
+  [ -n "$LIST" ] || { echo "第 $SEG_A–$SEG_B 帧没有 png：$IN_DIR" >&2; exit 2; }
+fi
 ABS_IN=$(cd "$IN_DIR" && pwd)
 N=0; FIRST=""; LAST=""
 while IFS="$(printf '\t')" read -r num name; do
@@ -39,6 +51,7 @@ done <<EOF
 $LIST
 EOF
 SPAN=$((LAST - FIRST + 1))
+if [ -n "$SEG_A" ]; then echo "分段：第 $SEG_A–$SEG_B 帧，$N 张"; fi
 echo "输入：$N 张 png，帧号 $FIRST–$LAST"
 [ "$SPAN" -eq "$N" ] || echo "注意：帧号不连续，缺 $((SPAN - N)) 张（按现有 $N 张连续编码）"
 
