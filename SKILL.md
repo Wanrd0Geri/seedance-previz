@@ -66,9 +66,9 @@ import check_export as ce; importlib.reload(ce)
 result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>-<n>.json", grain="coarse")
 ```
 
-⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖，不按版本另建目录；只改了一镜就只重渲那一镜的帧段。在主机上跑 `scripts/encode.sh` 出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
+⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖；只改一镜就只重渲那段。在主机上跑 `scripts/encode.sh` 出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
 
-⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。定稿后清目录：`frames/` 和过程版（旧版 .blend、.blend1、改镜片段、字幕版、桌面副本）`mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`，交付目录只留最终 .blend、mp4、卡片、自查。
+⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。定稿后把 `frames/` 和过程版（旧 .blend、.blend1、改镜片段、字幕版）`mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`，目录只留最终一版。
 
 ## 5 Higgs 模块怎么读
 
@@ -88,9 +88,7 @@ result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>
 - `<片名>_审看_<YYMMDD>-<n>.mp4`：字幕卡在说话帧、左上角镜号，只给用户审 layout，不上传
 - `<片名>_任务卡_<YYMMDD>-<n>.md`、`<片名>_交接卡_<YYMMDD>-<n>.md`
 - `<片名>_自查_<YYMMDD>-<n>.json`（check_export 输出）
-- png 序列只放 `白模_<片名>/frames/` 一套。mp4 合成、逐秒图和首中末图看过之后，把 `frames/` 挪进废纸篓（收尾必做，一版帧 1 GB 上下，14 版就 30 GB）。
-
-定稿后目录里只有最终一版：.blend、全片 mp4、分段 mp4、审看版、两张卡、自查 json。过程版全部挪进废纸篓，不留在同步空间。
+- png 序列只放 `白模_<片名>/frames/` 一套；mp4 和两张图看过就把它挪进废纸篓（收尾必做，一版帧约 1 GB）。
 
 汇报三块：
 
