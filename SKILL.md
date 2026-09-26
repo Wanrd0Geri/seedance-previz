@@ -11,6 +11,8 @@ description: 用 Blender（Higgsfield blender MCP）搭 Seedance 2.5 白模预�
 
 分工：aigc-video 写提示词，这边搭模、定机位，两边只靠交接卡连接。aigc-video 的文件只读，不改。做过的案例在 `cases/`。
 
+依赖 Higgsfield 的 Blender MCP（`higgsfield-use-blender`，工具名 `bl_*`），Claude Code 与 Codex 都要注册它。当前宿主调不到 `bl_health` 就停下，告诉用户这个宿主还没注册；不要改用别的 Blender MCP，比如 Codex 里名为 `blender` 的那个连的是开着窗口的 Blender，工具也不同。
+
 ## 2 两条路线
 
 先判断走哪条，写进任务卡。
@@ -42,7 +44,7 @@ description: 用 Blender（Higgsfield blender MCP）搭 Seedance 2.5 白模预�
 
 ```python
 import sys, os, importlib
-d = os.path.expanduser("~/.claude/skills/seedance-previz/scripts")
+d = os.path.expanduser("~/Documents/Codex/seedance-previz/scripts")
 if d not in sys.path: sys.path.insert(0, d)
 import previz_lib as pv; importlib.reload(pv)
 result = pv.setup_workbench(res=(1280, 544), fps=24, sun_dir=(-0.6, 0.75, 0.3), frame_range=(1, 480))
@@ -54,17 +56,17 @@ result = pv.setup_workbench(res=(1280, 544), fps=24, sun_dir=(-0.6, 0.75, 0.3), 
 
 ⑤ **相机与运镜**（`references/camera-moves.md`）。每镜一台相机：`camera_with_rig` + `aim_to` + `key_rig`；`set_marker_camera` 在切点帧绑相机。
 
-⑥ **逐镜核对。** 每镜起幅、中段、落幅各渲一张（`bl_set_frame` + `bl_render`），用 Read 看。按稿推算的可见内容和渲出来的对不上，以渲染为准，记进汇报。再跑自查，不通过就修：
+⑥ **逐镜核对。** 每镜起幅、中段、落幅各渲一张（`bl_set_frame` + `bl_render`），打开看（Claude Code 用 Read，Codex 用 view_image）。按稿推算的可见内容和渲出来的对不上，以渲染为准，记进汇报。再跑自查，不通过就修：
 
 ```python
 import sys, os, importlib
-d = os.path.expanduser("~/.claude/skills/seedance-previz/scripts")
+d = os.path.expanduser("~/Documents/Codex/seedance-previz/scripts")
 if d not in sys.path: sys.path.insert(0, d)
 import check_export as ce; importlib.reload(ce)
 result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>-<n>.json", grain="coarse")
 ```
 
-⑦ **导出**（`references/export-verify.md`）。分批渲 png 序列 → 在主机上跑 `scripts/encode.sh` 出 mp4、逐秒拼图、首中末帧 → 用 Read 看两张图。
+⑦ **导出**（`references/export-verify.md`）。分批渲 png 序列 → 在主机上跑 `scripts/encode.sh` 出 mp4、逐秒拼图、首中末帧 → 打开看两张图。
 
 ⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。
 

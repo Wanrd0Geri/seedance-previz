@@ -2,8 +2,8 @@
 
 这里只写做法。景别、角度、焦段怎么选，运镜术语怎么说，看 aigc-video（只读）：
 
-- `~/.claude/skills/aigc-video/references/craft/camera.md`：第 1 节景别，第 2 节角度与高度，第 3 节光学，第 5–7 节运镜、一镜到底与切点。
-- `~/.claude/skills/aigc-video/references/lexicon/camera-terms.md`、`camera-combo-terms.md`：术语词库，按小类 grep，不整份读。
+- `~/Documents/Codex/aigc-video/references/craft/camera.md`：第 1 节景别，第 2 节角度与高度，第 3 节光学，第 5–7 节运镜、一镜到底与切点。
+- `~/Documents/Codex/aigc-video/references/lexicon/camera-terms.md`、`camera-combo-terms.md`：术语词库，按小类 grep，不整份读。
 
 函数都在 `scripts/previz_lib.py`，下文 `pv.` 开头。
 
@@ -48,7 +48,7 @@ c = rig.constraints.new('COPY_LOCATION'); c.target = 主体根物体; c.use_offs
 - 默认贝塞尔：两个键之间自带缓入缓出。要匀速，在起点那个键写 `interp="LINEAR"`：interp 管的是这个键到下一个键那一段。
 - 落幅留 6–12 帧稳定：最后两个键写同一个值。
 - 24 fps 下一拍 0.5 s = 12 帧，按分镜的拍点放键。
-- 抽查点：起点、起步、最快、落定、末帧（Higgs blender-animation）。每个点渲一张，用 Read 看。
+- 抽查点：起点、起步、最快、落定、末帧（Higgs blender-animation）。每个点渲一张，打开看。
 
 ## 4 切镜
 

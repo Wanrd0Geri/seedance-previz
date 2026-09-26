@@ -3,7 +3,7 @@
 
 在 Higgs 的 bl_execute 里用（后台 Blender 会话）：
     import sys, os, importlib
-    d = os.path.expanduser("~/.claude/skills/seedance-previz/scripts")
+    d = os.path.expanduser("~/Documents/Codex/seedance-previz/scripts")
     if d not in sys.path: sys.path.insert(0, d)
     import previz_lib as pv; importlib.reload(pv)
     pv.setup_workbench(res=(1280, 544), fps=24, sun_dir=(-0.6, 0.75, 0.3))

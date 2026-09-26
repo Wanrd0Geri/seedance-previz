@@ -89,4 +89,4 @@ echo "输出：$OUT"
 echo "      ${STEM}_逐秒.png（${SEC} 格）"
 echo "      ${STEM}_首中末.png（第 1、$((MID + 1))、$((END + 1)) 帧）"
 if [ "$FAILS" -gt 0 ]; then echo "结论：$FAILS 项不合上传限制，改好再传"; else echo "结论：合上传限制"; fi
-echo "下一步：用 Read 看两张图"
+echo "下一步：打开看两张图"

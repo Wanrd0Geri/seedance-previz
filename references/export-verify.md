@@ -51,7 +51,7 @@ result = {"rendered": [A, B]}
 渲完在主机上（Bash）编码：
 
 ```bash
-bash ~/.claude/skills/seedance-previz/scripts/encode.sh "<白模目录>/frames" "<白模目录>/<片名>_白模运镜_<YYMMDD>-<n>.mp4" 24
+bash ~/Documents/Codex/seedance-previz/scripts/encode.sh "<白模目录>/frames" "<白模目录>/<片名>_白模运镜_<YYMMDD>-<n>.mp4" 24
 ```
 
 encode.sh 做的事：
@@ -63,14 +63,14 @@ encode.sh 做的事：
 
 ## 4 核对
 
-1. 用 Read 看 `_逐秒.png`：切点在不在对的秒上，主体在不在，有没有辅助线，投影朝哪边。
-2. 用 Read 看 `_首中末.png`：首帧是镜头1 的起幅，末帧是最后一镜的落幅。
+1. 打开看 `_逐秒.png`：切点在不在对的秒上，主体在不在，有没有辅助线，投影朝哪边。
+2. 打开看 `_首中末.png`：首帧是镜头1 的起幅，末帧是最后一镜的落幅。
 3. 跑 check_export。渲之前跑一次，改完再跑一次。
 
 对存好的 .blend（命令行）：
 
 ```bash
-/Applications/Blender.app/Contents/MacOS/Blender --background 场景.blend --python ~/.claude/skills/seedance-previz/scripts/check_export.py -- --out 报告.json --grain coarse
+/Applications/Blender.app/Contents/MacOS/Blender --background 场景.blend --python ~/Documents/Codex/seedance-previz/scripts/check_export.py -- --out 报告.json --grain coarse
 ```
 
 对 Higgs 的活场景：SKILL.md 第 4 节步骤 ⑥ 的代码。
@@ -99,7 +99,7 @@ Higgs 后台跑不了即梦插件。要用插件直传：
 
 ```bash
 B=/Applications/Blender.app/Contents/MacOS/Blender
-S=~/.claude/skills/seedance-previz/scripts
+S=~/Documents/Codex/seedance-previz/scripts
 $B --background --python $S/previz_lib.py
 $B --background /tmp/seedance-previz-selftest/selftest.blend --python $S/check_export.py -- --out /tmp/seedance-previz-selftest/check.json
 bash $S/encode.sh /tmp/seedance-previz-selftest/frames /tmp/seedance-previz-selftest/selftest.mp4 24

@@ -5,7 +5,7 @@
     Blender --background 场景.blend --python check_export.py -- --out 报告.json [--grain coarse|fine] [--chr 名1,名2]
 Higgs 的 bl_execute 里：
     import sys, os, importlib
-    d = os.path.expanduser("~/.claude/skills/seedance-previz/scripts")
+    d = os.path.expanduser("~/Documents/Codex/seedance-previz/scripts")
     if d not in sys.path: sys.path.insert(0, d)
     import check_export as ce; importlib.reload(ce)
     result = ce.run(out_json="/绝对路径/片名_自查_260925-1.json", grain="coarse")
@@ -349,7 +349,7 @@ def run(out_json=None, grain="coarse", chr_names=None, prefix="CHR_", quiet=Fals
               "③ 颜色 → 图N 映射已写进交接卡",
               "⑥ 光向和任务卡一致",
               "⑨ 切点帧和镜头表一致：" + "、".join(f"镜{s['shot']} 第{s['frames'][0]}帧" for s in shot_reports),
-              "⑩ mp4 首 / 中 / 末帧用 Read 看过（encode.sh 出 _首中末.png）"]
+              "⑩ mp4 首 / 中 / 末帧已打开看过（encode.sh 出 _首中末.png）"]
     verdict = "不通过" if fails else ("有警告" if warns else "通过")
     report = {"verdict": verdict, "settings": settings, "shots": shot_reports, "characters": chars,
               "saturated_env": report_env, "fail": fails, "warn": warns, "manual": manual}
