@@ -42,5 +42,5 @@
 - camera-blocking 的"42 件家具""4 个人偶（Man、Woman、Heavy Man、Heavy Woman，IK / FK）"原文有；"家具偏现代"原文没写，是早先的判断，未核实。人偶四肢能不能单独隐藏，原文没说，所以这里用"整个人偶藏起来、换躯体代理"。
 - camera-blocking 首次使用会往 Blender 装 Blockstage 扩展并保存偏好设置，原文说不必再问用户。这是改用户配置，本 skill 要求先问。
 - audit-finalize 规定：passport 精度是 blockout 的资产，才允许以几何体原样出镜。所以 B 路线资产在任务卡里一律按"粗"登记（task-card.md 第 2 节最后一条）。
-- greybox 的本地导出要求：从编码后的 mp4 解出首帧来核对，重渲一张不算证据。encode.sh 的 `_首中末.png` 照这条做。
+- greybox 的本地导出要求：从编码后的 mp4 解出首帧来核对，重渲一张不算证据。encode.py 的 `_首中末.png` 照这条做。
 - blender-volatile 的 5.x 坑与原文一致；previz_lib.py 取 F 曲线用的就是它给的动作槽写法。

@@ -36,9 +36,9 @@ fps 24。单段 ≤30 s，即 ≤720 帧。
 帧目录规矩（E02S08 堆到 32 GB 的教训）：
 - 全程一个 `frames/`，每版覆盖同名文件，不建 frames_v2、frames_v3。
 - 只改了一镜，就把 A、B 设成那一镜的帧段重渲，覆盖进同一目录再合成（一镜约 1 分钟）。
-- 分段上传的 mp4 不复制、不软链帧：encode.sh 传首帧、末帧就行。
+- 分段上传的 mp4 不复制帧：encode.py 传首帧、末帧就行。
 - 审看版不渲帧：见第 7 节。
-- mp4 合成并看过逐秒图、首中末图后，`frames/` 挪进废纸篓：`mv "<白模目录>/frames" ~/.Trash/<片名>_frames_<YYMMDD>`。
+- mp4 合成并看过逐秒图、首中末图后，`frames/` 挪进废纸篓：macOS `mv "<白模目录>/frames" ~/.Trash/<片名>_frames_<YYMMDD>`；Windows 送回收站（不永久删除）。
 
 在 Higgs 的 bl_execute 里分批渲 png，一次一批，别让单次调用太长。超时用 bl_job_status 查，别盲目重跑（blender-scene）：
 
@@ -59,12 +59,14 @@ result = {"rendered": [A, B]}
 渲完在主机上（Bash）编码：
 
 ```bash
-bash ~/Documents/Codex/seedance-previz/scripts/encode.sh "<白模目录>/frames" "<白模目录>/<片名>_白模运镜_<YYMMDD>-<n>.mp4" 24
+python3 -X utf8 $HOME/Documents/Codex/seedance-previz/scripts/encode.py "<白模目录>/frames" "<白模目录>/<片名>_白模运镜_<YYMMDD>-<n>.mp4" 24
 ```
+
+Windows 上 `python3` 不可用时换成 `py -3`。旧的 `encode.sh` 保留为转调 encode.py 的薄封装（macOS / Git Bash）。
 
 分段：末尾加首帧、末帧，如 `… 24 546 876` 只收这段帧号（用全片帧号，输出的 mp4 从第 1 帧起）。
 
-encode.sh 做的事：
+encode.py 做的事：
 
 - 只收文件名以数字结尾的 png，按数字排序；帧号有缺口会提示。
 - h264、yuv420p、crf 18；奇数宽高裁掉 1 像素。
@@ -77,10 +79,10 @@ encode.sh 做的事：
 2. 打开看 `_首中末.png`：首帧是镜头1 的起幅，末帧是最后一镜的落幅。
 3. 跑 check_export。渲之前跑一次，改完再跑一次。
 
-对存好的 .blend（命令行）：
+对存好的 .blend（命令行）。`<Blender>` 是 Blender 可执行文件：macOS `/Applications/Blender.app/Contents/MacOS/Blender`，Windows `C:\Program Files\Blender Foundation\Blender <版本>\blender.exe`（`scripts/selftest.py` 里的 `find_blender()` 会按环境变量 `BLENDER_EXECUTABLE`、PATH、常见安装位置自动找）：
 
 ```bash
-/Applications/Blender.app/Contents/MacOS/Blender --background 场景.blend --python ~/Documents/Codex/seedance-previz/scripts/check_export.py -- --out 报告.json --grain coarse
+<Blender> --background 场景.blend --python $HOME/Documents/Codex/seedance-previz/scripts/check_export.py -- --out 报告.json --grain coarse
 ```
 
 对 Higgs 的活场景：SKILL.md 第 4 节步骤 ⑥ 的代码。
@@ -102,27 +104,30 @@ Higgs 后台跑不了即梦插件。要用插件直传：
 
 1. 先 `pv.hide_overlays()`，再 `bl_save_project` 存 .blend。
 2. 用户在桌面 Blender 打开这个 .blend，装即梦官网的 Blender 插件。
-3. 侧边栏 Jimeng 页签 →"相机渲染"；或"本地上传"，选 encode.sh 出的 mp4。
+3. 侧边栏 Jimeng 页签 →"相机渲染"；或"本地上传"，选 encode.py 出的 mp4。
 
 插件"相机渲染"用哪种渲染、带不带 overlay，未核实。传之前看一眼它出的视频。
 
 ## 6 自测
 
-改了脚本就跑一遍。临时文件都在 `/tmp/seedance-previz-selftest/`。
+改了脚本就跑一遍。临时文件都在 `<系统临时目录>/seedance-previz-selftest/`（`tempfile.gettempdir()`：macOS 是 `/var/folders/…/T`，Windows 是 `%TEMP%`）。
 
 ```bash
-B=/Applications/Blender.app/Contents/MacOS/Blender
-S=~/Documents/Codex/seedance-previz/scripts
-$B --background --python $S/previz_lib.py
-$B --background /tmp/seedance-previz-selftest/selftest.blend --python $S/check_export.py -- --out /tmp/seedance-previz-selftest/check.json
-bash $S/encode.sh /tmp/seedance-previz-selftest/frames /tmp/seedance-previz-selftest/selftest.mp4 24
+python3 -X utf8 $HOME/Documents/Codex/seedance-previz/scripts/selftest.py
+```
+
+`selftest.py` 自己找 Blender（环境变量 `BLENDER_EXECUTABLE` → PATH → 各平台常见安装位置），后台跑 `previz_lib.py` 自测；Windows 上 `python3` 不可用时换成 `py -3`。它等价于 `<Blender> --background --factory-startup --python previz_lib.py`。之后可分别对自测产物跑 check_export 和 encode：
+
+```bash
+<Blender> --background <临时目录>/seedance-previz-selftest/selftest.blend --python $HOME/Documents/Codex/seedance-previz/scripts/check_export.py -- --out <临时目录>/seedance-previz-selftest/check.json
+python3 -X utf8 $HOME/Documents/Codex/seedance-previz/scripts/encode.py <临时目录>/seedance-previz-selftest/frames <临时目录>/seedance-previz-selftest/selftest.mp4 24
 ```
 
 预期：
 
 - 第一条打印 `SELFTEST OK`，渲出 frame_0001.png、frame_0037.png，存 selftest.blend；失败时进程非零退出。
-- 第二条报"不通过"：CHR_Limbed_图2 带四肢、颜色 0.92；CHR_Tiny_图3 太小又不动；CHR_Hero_图1 通过。
-- 第三条只有"时长"不通过（2 帧只有 0.08 s），`_逐秒.png`、`_首中末.png` 都生成。
+- check_export 报"不通过"：CHR_Limbed_图2 带四肢、颜色 0.92；CHR_Tiny_图3 太小又不动；CHR_Hero_图1 通过。
+- encode 只有"时长"不通过（2 帧只有 0.08 s），`_逐秒.png`、`_首中末.png` 都生成。
 
 ## 7 审看版
 

@@ -66,9 +66,9 @@ import check_export as ce; importlib.reload(ce)
 result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>-<n>.json", grain="coarse")
 ```
 
-⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖；只改一镜就只重渲那段。在主机上跑 `scripts/encode.sh` 出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
+⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖；只改一镜就只重渲那段。在主机上跑 `scripts/encode.py`（跨平台，命令见 `references/export-verify.md` 第 3 节）出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
 
-⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。定稿后把 `frames/` 和过程版（旧 .blend、.blend1、改镜片段、字幕版）`mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`，目录只留最终一版。
+⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。定稿后把 `frames/` 和过程版（旧 .blend、.blend1、改镜片段、字幕版）挪进废纸篓，目录只留最终一版：macOS 用 `mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`；Windows 用回收站（PowerShell 的 `Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(路径, 'OnlyErrorDialogs', 'SendToRecycleBin')`，或让用户手动删），不用永久删除。
 
 ## 5 Higgs 模块怎么读
 

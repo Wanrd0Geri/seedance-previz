@@ -7,7 +7,7 @@
         [--range 首帧 末帧] [--vivid] [--no-pixel]
 Higgs 的 bl_execute 里：
     import sys, os, importlib
-    d = os.path.expanduser("~/Documents/Codex/seedance-previz/scripts")
+    d = os.path.join(os.path.expanduser("~"), "Documents", "Codex", "seedance-previz", "scripts")
     if d not in sys.path: sys.path.insert(0, d)
     import check_export as ce; importlib.reload(ce)
     result = ce.run(out_json="/绝对路径/片名_自查_260925-1.json", grain="coarse")
@@ -204,7 +204,7 @@ def run(out_json=None, grain="coarse", chr_names=None, prefix="CHR_", quiet=Fals
         if not 0.4 <= w / h <= 2.5:
             fail("⑧", f"宽高比 {w / h:.3f}，要在 0.4–2.5")
         if w % 2 or h % 2:
-            warn("⑧", f"分辨率 {w}×{h} 有奇数边，h264 会被 encode.sh 裁掉 1 像素")
+            warn("⑧", f"分辨率 {w}×{h} 有奇数边，h264 会被 encode.py 裁掉 1 像素")
 
         # ⑤ 会渲进画面的东西 + 显示开关
         if r.use_stamp:
@@ -420,7 +420,7 @@ def run(out_json=None, grain="coarse", chr_names=None, prefix="CHR_", quiet=Fals
                   "③ 颜色 → 图N 映射已写进交接卡" + ("；鲜明色要加'服装颜色以参考图为准'" if vivid else ""),
                   "⑥ 光向和任务卡一致",
                   "⑨ 切点帧和镜头表一致：" + "、".join(f"镜{s['shot']} 第{s['frames'][0]}帧" for s in shot_reports),
-                  "⑩ mp4 首 / 中 / 末帧已打开看过（encode.sh 出 _首中末.png）"]
+                  "⑩ mp4 首 / 中 / 末帧已打开看过（encode.py 出 _首中末.png）"]
     finally:
         sc.frame_start, sc.frame_end = orig_range
         sc.frame_set(orig_frame, subframe=orig_sub)

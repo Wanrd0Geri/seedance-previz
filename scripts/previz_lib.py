@@ -3,13 +3,14 @@
 
 在 Higgs 的 bl_execute 里用（后台 Blender 会话）：
     import sys, os, importlib
-    d = os.path.expanduser("~/Documents/Codex/seedance-previz/scripts")
+    d = os.path.join(os.path.expanduser("~"), "Documents", "Codex", "seedance-previz", "scripts")
     if d not in sys.path: sys.path.insert(0, d)
     import previz_lib as pv; importlib.reload(pv)
     pv.setup_workbench(res=(1280, 544), fps=24, sun_dir=(-0.6, 0.75, 0.3))
 
-命令行自测（只在空白会话里跑，会建场景，渲图和两段 mp4 到 /tmp/seedance-previz-selftest/）：
-    /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python previz_lib.py
+命令行自测（只在空白会话里跑，会建场景，渲图和两段 mp4 到 <系统临时目录>/seedance-previz-selftest/）：
+    python3 -X utf8 selftest.py        # 跨平台入口，自己找 Blender
+    Blender --background --factory-startup --python previz_lib.py     # 等价的直接写法
 
 约定：米制，Z 向上，角色正面 = 本地 -Y。新建的物体都进 PREVIZ 集合；
 同名物体如果不在 PREVIZ 集合里，函数直接报错，不覆盖用户的东西。
@@ -18,6 +19,7 @@ import bisect
 import math
 import os
 import re
+import tempfile
 import sys
 
 import bmesh
@@ -35,8 +37,20 @@ LIMB_RE = re.compile(r"(?i)(?:^|[_\-. ])(?:arm|leg|wing|hand|foot)s?(?:[_\-. ]?[
 LIMB_ZH = frozenset(("臂", "左臂", "右臂", "手臂", "上臂", "前臂", "腿", "左腿", "右腿", "大腿", "小腿",
                      "翅", "翅膀", "左翅", "右翅", "手", "左手", "右手", "脚", "左脚", "右脚"))
 _SEG_RE = re.compile(r"[_\-. ]+")
-# 审看版字幕字体（macOS 自带，带中文）
-FONT = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+# 审看版字幕字体（带中文）：按平台找系统自带字体，都没有就返回 None（burn_subs 退回 Blender 默认字体）
+def _default_font():
+    windir = os.environ.get("WINDIR") or os.environ.get("SystemRoot") or r"C:\Windows"
+    for p in ("/System/Library/Fonts/Supplemental/Arial Unicode.ttf",           # macOS
+              os.path.join(windir, "Fonts", "msyh.ttc"),                        # Windows 微软雅黑
+              os.path.join(windir, "Fonts", "msyh.ttf"),
+              os.path.join(windir, "Fonts", "simhei.ttf"),
+              "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"):        # Linux
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+FONT = _default_font()
 # 会渲出来、能用物体色（ob.color）涂色的物体类型
 PAINTABLE = {'MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'CURVES', 'POINTCLOUD'}
 # frame_stats 掩码颜色（线性值；比对时过 sRGB）：角色按序取色，其他物体中灰，分批时别批的角色深灰，背景黑
@@ -1330,7 +1344,7 @@ def frame_stats(frame=None, chars=None, res_pct=50, out_png=None, path=None, col
     world_col = None
     saved_col = {}
     muted = []
-    tmp = out_png or os.path.join(bpy.app.tempdir or "/tmp", f"previz_mask_{os.getpid()}.png")
+    tmp = out_png or os.path.join(bpy.app.tempdir or tempfile.gettempdir(), f"previz_mask_{os.getpid()}.png")
     chars_out, sky, env, res = {}, None, None, None
     try:
         sc.frame_set(f)
@@ -1628,7 +1642,7 @@ def _selftest():
     if bpy.data.filepath or extra:
         raise RuntimeError("自测只在空白会话里跑（会清空场景），当前会话有内容")
     t0 = time.time()
-    out = "/tmp/seedance-previz-selftest"
+    out = os.path.join(tempfile.gettempdir(), "seedance-previz-selftest")
     frames = os.path.join(out, "frames")
     os.makedirs(frames, exist_ok=True)
     for f in os.listdir(frames):
@@ -1860,6 +1874,11 @@ def _selftest():
     chk(8, [x.name for x in bpy.data.scenes] == [sc.name], f"临时场景没删：{[x.name for x in bpy.data.scenes]}")
     probe = shutil.which("ffprobe") or next((p for p in ("/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe")
                                              if os.path.isfile(p)), None)
+    if not probe:
+        ff_exe = shutil.which("ffmpeg")
+        if ff_exe:
+            cand = os.path.join(os.path.dirname(ff_exe), "ffprobe.exe" if os.name == "nt" else "ffprobe")
+            probe = cand if os.path.isfile(cand) else None
     nb = None
     if probe and os.path.isfile(review):
         res = subprocess.run([probe, "-v", "error", "-select_streams", "v:0", "-count_frames",
