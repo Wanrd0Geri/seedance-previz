@@ -1883,7 +1883,7 @@ def _selftest():
     if probe and os.path.isfile(review):
         res = subprocess.run([probe, "-v", "error", "-select_streams", "v:0", "-count_frames",
                               "-show_entries", "stream=nb_read_frames", "-of", "default=nw=1:nk=1", review],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, encoding="utf-8", errors="replace")
         nb = res.stdout.strip()
         chk(8, nb == "24", f"审看版应 24 帧，ffprobe 读出 {nb!r}")
 
