@@ -11,4 +11,5 @@
 - **macOS 与 Windows 通用**：脚本只用 Python 标准库，临时目录用 `tempfile.gettempdir()`，字幕字体按平台找系统中文字体。`scripts/encode.py` 是跨平台的编码入口，`encode.sh` 只是转调它的薄封装。Windows 11 + Blender 5.2 上自测通过；窗口 MCP 路线 2026-10-01 在 Windows 11 + Blender 5.2.1 上实做过一条（蛟龙绕柱），macOS 未验证。
 - **找 Blender**：`scripts/selftest.py` 按环境变量 `BLENDER_EXECUTABLE`（或 `BLENDER`）→ PATH → 常见位置查找（macOS `/Applications/Blender*.app`；Windows `C:\Program Files\Blender Foundation\Blender *\blender.exe`，取最新版）。找 ffmpeg 同理，可用 `FFMPEG_DIR` 指定 bin 目录。
 - **自测**：`python3 -X utf8 $HOME/Documents/Codex/seedance-previz/scripts/selftest.py`（Windows 上 `python3` 不可用时用 `py -3`），应输出 `SELFTEST OK`。完整自测见 `references/export-verify.md` 第 6 节。
+- **案例**：`cases/` 两条——猿三宣判法相（2026-09-25，建筑场景 + 躯体代理）、蛟龙绕柱（2026-10-01，头部标记 + 半透明环境 + 闪电白场，Windows 窗口 MCP 路线）。
 - 安装、同步与改动规则见 [Wanrd0Geri/skills-setup](https://github.com/Wanrd0Geri/skills-setup)。`notes/` 放施工图，只留在本机，不进仓库。

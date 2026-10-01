@@ -1,6 +1,6 @@
 ---
 name: seedance-previz
-description: 用 Blender（本机 Blender MCP，连开着窗口的 Blender）搭 Seedance 2.5 白模预演，交付符合即梦白模要求的参考视频和给 aigc-video 写提示词用的交接卡。两条路线：已有精模就只做导入、摆放与运镜；没有素材就用几何体搭场景加只留躯体的角色代理。用于"搭白模 / 白模预演 / 用 Blender 做这段的运镜和调度 / 出白模参考视频"。不用于写视频提示词（那是 aigc-video）、精细建模、材质与最终渲染、非 Seedance 的 Blender 工作。
+description: 用 Blender（本机 Blender MCP，连开着窗口的 Blender）搭 Seedance 2.5 白模预演，交付符合即梦白模要求的参考视频和给 aigc-video 写提示词用的交接卡。两条路线：已有精模就只做导入、摆放与运镜；没有素材就用几何体搭场景加只留躯体的角色代理（龙、蛇这类长条生物只留头部标记）。用于"搭白模 / 白模预演 / 用 Blender 做这段的运镜和调度 / 出白模参考视频"。不用于写视频提示词（那是 aigc-video）、精细建模、材质与最终渲染、非 Seedance 的 Blender 工作。
 ---
 
 # Seedance 白模预演
@@ -20,12 +20,13 @@ description: 用 Blender（本机 Blender MCP，连开着窗口的 Blender）搭
 - **A 已有精模 → 细颗粒度。** 导入副本 → 归一化到米 → 摆放 → 运镜 → 关辅助显示 → 导出。只动副本，原文件不碰。
 - **B 没有素材 → 粗颗粒度。** 任务卡定世界布局 → 几何体搭场景 → 躯体代理 → 运镜 → 导出。官方说当前粗颗粒度效果更好，拿不准就走 B。
 - **混合**（精模场景 + 躯体代理角色）：未试，只作可选项。用了就在交接卡里写明。
+- **B′ 非人形长条生物（龙、蛇、鱼）→ 头部标记。** 身体一点不建，只建一颗带尖嘴的椭球标头的位置和朝向（`pv.head_marker`），镜头始终看它；环境做半透明起伏形体。带整条身体的代理会被成片照形状画（蛟龙案例，L152）。细则 `references/proxies.md` 第 1.1 节，案例 `cases/2026-10-01-jiao-tornado.md`。
 
 ## 3 必须守住
 
 细则和来源在 `references/seedance-whitebox-rules.md`，这里只列底线：
 
-1. 粗白模的角色不带四肢和翅膀，只留躯体。带了就得在提示词里写全四肢动作序列，否则成片僵化（官方手册）。
+1. 粗白模的角色不带四肢和翅膀，只留躯体。带了就得在提示词里写全四肢动作序列，否则成片僵化（官方手册）。龙、蛇这类长条生物连躯体都不要，只留头部标记（蛟龙案例：整条身体代理被成片照形状画，L152；一个案例）。
 2. 颜色默认中性灰阶或近服装色，饱和度 ≤0.3（白模颜色会渗进成片，外部实测）。用户指定鲜明分色就照做：自查加 vivid 只报警告，交接卡加一句"服装颜色以参考图为准"。
 3. 每镜主体画高 ≥ 一成，而且要动（本镜位移 ≥ 半个身高）。又小又不动会被整个丢掉（外部实测，L121）。
 4. 轨迹线、坐标轴、相机框、overlay 全关。官方要求细颗粒度上传前去掉，粗的照样关。
@@ -66,7 +67,7 @@ import check_export as ce; importlib.reload(ce)
 result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>-<n>.json", grain="coarse")
 ```
 
-⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖；只改一镜就只重渲那段。在主机上跑 `scripts/encode.py`（跨平台，命令见 `references/export-verify.md` 第 3 节）出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
+⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖；只改一镜就只重渲那段。在主机上跑 `scripts/encode.py`（跨平台，命令见 `references/export-verify.md` 第 3 节）出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。闪白帧和结尾白场在这一步加（`--flash`、`--fade-white`），不在 Blender 里做。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
 
 ⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bpy.ops.wm.save_as_mainfile(filepath=…, copy=True)` 存 .blend，汇报。定稿后把 `frames/` 和过程版（旧 .blend、.blend1、改镜片段、字幕版）挪进废纸篓，目录只留最终一版：macOS 用 `mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`；Windows 用回收站（PowerShell 的 `Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(路径, 'OnlyErrorDialogs', 'SendToRecycleBin')`，或让用户手动删），不用永久删除。
 
@@ -75,7 +76,7 @@ result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>
 - **会话**：靠渲染帧核对，视窗截图只作辅助；大改前存恢复副本；装 Blender 扩展、插件或改偏好设置先问用户。
 - **搭模（B 路线）**按五关走：轮廓 → 比例（按米核对）→ 层次 → 接触 → 相机读。
 - **动画**：键控制器，不键一堆零碎子物体；插值有意选（贝塞尔缓入缓出 / 线性 / 常量）；旋转模式有意选，防中途翻转。逐帧算出来的复杂运动（沿路线走、按节拍变距离、方位和侧倾）写成一个 .py 放进白模目录，每次 `importlib.reload` 后重键，方便反复调。
-- **相机**：先定主体、焦段、距离、高度；运动建在控制器上（RIG → HEAD → CAM）；一盏结构主光，保留投影。
+- **相机**：先定主体、焦段、距离、高度；运动建在控制器上（RIG → HEAD → CAM）；一盏结构主光，保留投影。贴身追拍要不僵：相机状态按主体坐标系写成节拍表，关键帧之间 Catmull-Rom 过渡，加一个总幅度旋钮（`references/camera-moves.md` 第 9 节）。
 - **核对**：从编码后的 mp4 解帧看（encode.py 的 `_首中末.png`），重渲一张不算证据。
 - **Blender 5.x**：F 曲线走动作槽（previz_lib 已处理）；枚举值先读再设，别写死。
 

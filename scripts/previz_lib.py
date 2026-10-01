@@ -476,6 +476,79 @@ def torso_proxy(name, height, color, face_dir=(0.0, -1.0, 0.0), loc=(0.0, 0.0, 0
     root["previz_pose"] = pose
     return root
 
+def head_marker(name, length, width=None, height=None, color=(0.2, 0.2, 0.21), loc=(0.0, 0.0, 0.0),
+                face_dir=(0.0, -1.0, 0.0), muzzle_ratio=0.3):
+    """头部标记代理：一颗椭球加尖嘴，只标头在哪、往哪游，没有身体。给龙、蛇、鱼这类非人形长条生物用：
+    带整条身体的代理会被成片照形状画（蛟龙案例，aigc-video L152），所以身体一点不建，交给角色图。
+    返回根空物体：原点在椭球中心，本地 -Y 是嘴尖的方向；沿路线游就键根物体的位置和朝向（或挂 Curve 修改器）。
+    length 头长（米，含嘴尖）；width / height 默认 0.35 / 0.6 × length（蛟龙案例 17 × 6 × 10 m）。
+    尺寸按设定写真实值，全景时不放大（用户 2026-10-01）。颜色默认深灰，饱和度 0。
+    名字用 CHR_<角色>_<图N>，check_export 才会把它当角色查画高。
+    根物体写 previz_height（头高）、previz_stature（头长）、previz_pose="head"。"""
+    if is_limb_name(name):
+        raise ValueError(f"代理名 {name} 像四肢命名：check_export 会当成四肢，换个名字")
+    width = length * 0.35 if width is None else width
+    height = length * 0.6 if height is None else height
+    fx, fy = face_dir[0], face_dir[1]
+    if abs(fx) + abs(fy) < 1e-9:
+        raise ValueError("face_dir 要有水平分量")
+    root = _empty(name, loc, size=length * 0.3)
+    root.rotation_euler = (0.0, 0.0, math.atan2(fx, -fy))  # 本地 -Y 转到 face_dir
+    mz = length * muzzle_ratio
+    body_len = length - 0.7 * mz           # 椭球长度；嘴锥有 0.3 段插在椭球里，总长正好 = length
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=14, radius=1.0)
+    for v in bm.verts:
+        v.co = Vector((v.co.x * width / 2.0, v.co.y * body_len / 2.0, v.co.z * height / 2.0))
+    head = _mesh_obj(f"{name}_Head", bm, (0.0, 0.0, 0.0), color)
+    dark = tuple(c * 0.75 for c in _rgba(color)[:3])  # 同色相、同饱和度，暗一档
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=16,
+                          radius1=width * 0.32, radius2=0.0, depth=mz)
+    # 锥体轴向本地 Z、尖端在 +Z；绕 X 转 +90° 后尖端指向 -Y。锥底插进椭球前端 0.3 段，尖端落在 -(length - body_len/2)
+    muzzle = _mesh_obj(f"{name}_Muzzle", bm, (0.0, -body_len / 2.0 - 0.2 * mz, -height * 0.08), dark,
+                       (math.radians(90.0), 0.0, 0.0))
+    for part in (head, muzzle):
+        for p in part.data.polygons:
+            p.use_smooth = True
+        _parent(part, root)
+    root["previz_height"] = height
+    root["previz_stature"] = length
+    root["previz_pose"] = "head"
+    return root
+
+
+def bolt(name, start, end, on_frames, radius=0.45, color=(1.0, 1.0, 1.0, 1.0), segs=None,
+         jitter=(6.0, 6.0, 3.0), seed=None, viewport=False):
+    """闪电：从 start 劈到 end 的白色细管折线，中间点随机抖；只在 on_frames 给的帧可见，其余帧 hide_render。
+    on_frames：[f, (f0, f1), …]，单帧或帧段；每道亮 1–2 帧最像（蛟龙案例 29 道、半径 0.45 m、9–13 段、抖 ±6 m）。
+    segs 默认 9–13 随机；给 seed 就可重复。整屏闪白和结尾白场不在这里做，编码时用 encode.py --flash / --fade-white。
+    返回曲线物体（名字用 FX_ 开头，check_export 不当角色）。"""
+    import random
+    rng = random.Random(seed)
+    a, b = Vector(start), Vector(end)
+    n = int(segs) if segs else rng.randint(9, 13)
+    if n < 2:
+        raise ValueError("segs 至少 2 段")
+    jx, jy, jz = jitter
+    pts = []
+    for k in range(n + 1):
+        p = a.lerp(b, k / n)
+        if 0 < k < n:
+            p = p + Vector((rng.uniform(-jx, jx), rng.uniform(-jy, jy), rng.uniform(-jz, jz)))
+        pts.append(p)
+    ob = _tube(name, pts, radius, _rgba(color))
+    states = [(1, True)]
+    for item in on_frames:
+        f0, f1 = (int(item), int(item)) if isinstance(item, (int, float)) else (int(item[0]), int(item[1]))
+        if f1 < f0:
+            raise ValueError(f"帧段 {item} 末帧小于首帧")
+        states.append((f0, False))
+        states.append((f1 + 1, True))
+    states.sort(key=lambda s: s[0])
+    key_hide(ob, states, viewport=viewport)
+    return ob
+
 
 def key_hide(ob, frames_states, viewport=False):
     """[(帧, 是否隐藏), …] 键 hide_render。布尔键是常量插值：到下一个键之前一直保持，第一个键之前同第一个键。

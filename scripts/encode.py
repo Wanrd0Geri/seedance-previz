@@ -7,6 +7,11 @@ png 序列 → h264 mp4（yuv420p，crf 18）→ ffprobe 核对并按 Seedance �
 → 同名 _逐秒.png（每秒一格拼图）和 _首中末.png（从 mp4 解出的首帧、中帧、末帧）。
 只收文件名以数字结尾的 png（frame_0001.png），按数字排序；帧号有缺口会提示。
 分段：末尾再给首帧、末帧（全片帧号，两个都给才生效），只收这段帧；输出的 mp4 从第 1 帧起。
+后期（可选，写在哪个位置都行）：
+  --flash 25,49,54        这些帧（png 帧号 = Blender 帧号）整屏提亮一帧，当闪白
+  --flash-gain 0.28       提亮量，默认 0.28（蛟龙案例的值；1.0 = 全白）
+  --fade-white 6.625 0.25 从输出第 6.625 秒起用 0.25 秒淡到全白（结尾白场）
+  两样都在编码时加进 mp4，png 序列不动；逐秒图、首中末图从加过效果的 mp4 解出，末帧应是白的。
 （与旧 encode.sh 语义一致；encode.sh 现在只是调用本脚本的薄封装。）
 """
 import os
@@ -17,7 +22,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-USAGE = "用法：encode.py <png目录> <输出.mp4> [fps，默认 24] [首帧 末帧]"
+USAGE = "用法：encode.py <png目录> <输出.mp4> [fps，默认 24] [首帧 末帧] [--flash 帧,帧,…] [--flash-gain 0.28] [--fade-white 起始秒 时长秒]"
 
 
 def die(msg, code=2):
@@ -61,7 +66,48 @@ def link_or_copy(src, dst):
         shutil.copyfile(src, dst)
 
 
+def parse_flags(argv):
+    """把 --flash / --flash-gain / --fade-white 从参数里挑出来，剩下的按原来的位置参数解释。"""
+    rest, flash, gain, fade = [], [], 0.28, None
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--flash":
+            i += 1
+            if i >= len(argv):
+                die("--flash 后面要跟帧号列表，如 --flash 25,49,54")
+            for s in argv[i].split(","):
+                s = s.strip()
+                if not s.isdigit():
+                    die(f"--flash 的帧号要是整数：{s}")
+                flash.append(int(s))
+        elif a == "--flash-gain":
+            i += 1
+            try:
+                gain = float(argv[i])
+            except (IndexError, ValueError):
+                die("--flash-gain 后面要跟 0–1 的数，如 --flash-gain 0.28")
+            if not 0.0 < gain <= 1.0:
+                die(f"--flash-gain 要在 0–1 之间：{gain}")
+        elif a == "--fade-white":
+            try:
+                st, d = float(argv[i + 1]), float(argv[i + 2])
+            except (IndexError, ValueError):
+                die("--fade-white 后面要跟起始秒和时长秒，如 --fade-white 6.625 0.25")
+            if st < 0 or d <= 0:
+                die(f"--fade-white 起始秒要 ≥0、时长要 >0：{st} {d}")
+            fade = (st, d)
+            i += 2
+        elif a.startswith("--"):
+            die(f"不认识的选项：{a}；{USAGE}")
+        else:
+            rest.append(a)
+        i += 1
+    return rest, flash, gain, fade
+
+
 def main(argv):
+    argv, flash, gain, fade = parse_flags(argv)
     if not (2 <= len(argv) <= 5) or len(argv) == 4:
         die(USAGE)
     in_dir, out = Path(argv[0]), Path(argv[1])
@@ -111,13 +157,31 @@ def main(argv):
     if span != n:
         print(f"注意：帧号不连续，缺 {span - n} 张（按现有 {n} 张连续编码）")
 
+    # 后期：闪白按 png 帧号找到它在输出里的序号（0 起，分段和缺帧都照顾到）；白场按输出秒数
+    vf = ["crop=trunc(iw/2)*2:trunc(ih/2)*2"]
+    if flash:
+        idx = {fr: i for i, (fr, _) in enumerate(items)}
+        missing = sorted(set(f for f in flash if f not in idx))
+        if missing:
+            die(f"--flash 的帧号不在这段序列里：{missing}（序列是第 {first}–{last} 帧）")
+        flash = sorted(set(flash))
+        expr = "+".join(f"eq(n\\,{idx[f]})" for f in flash)
+        vf.append(f"eq=brightness={gain}:enable='{expr}'")
+        print(f"闪白：第 {','.join(map(str, flash))} 帧提亮 {gain}")
+    if fade:
+        st, d = fade
+        if st >= n / fps:
+            die(f"--fade-white 起始 {st} s 超过片长 {n / fps:.3f} s")
+        vf.append(f"fade=t=out:st={st}:d={d}:color=white")
+        print(f"白场：第 {st} s 起 {d} s 淡到全白")
+
     # 临时目录放在输出旁边（同盘才能硬链接），按连续编号链进去
     tmp = Path(tempfile.mkdtemp(prefix=".encode_tmp_", dir=out.parent))
     try:
         for i, (_, f) in enumerate(items, 1):
             link_or_copy(str(f.resolve()), str(tmp / f"{i:06d}.png"))
         run([ffmpeg, "-v", "error", "-y", "-framerate", str(fps), "-i", str(tmp / "%06d.png"),
-             "-vf", "crop=trunc(iw/2)*2:trunc(ih/2)*2",
+             "-vf", ",".join(vf),
              "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium",
              "-r", str(fps), "-movflags", "+faststart", str(out)])
     finally:
