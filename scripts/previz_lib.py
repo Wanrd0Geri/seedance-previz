@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """seedance-previz 帮助函数库：纯 bpy；frame_stats、compare_cams 另用 Blender 自带的 numpy。
 
-在 Higgs 的 bl_execute 里用（后台 Blender 会话）：
+在 Blender MCP 的 execute_blender_code 里用（开着窗口的 Blender 会话）：
     import sys, os, importlib
     d = os.path.join(os.path.expanduser("~"), "Documents", "Codex", "seedance-previz", "scripts")
     if d not in sys.path: sys.path.insert(0, d)
@@ -477,13 +477,45 @@ def torso_proxy(name, height, color, face_dir=(0.0, -1.0, 0.0), loc=(0.0, 0.0, 0
     return root
 
 
-def key_hide(ob, frames_states):
-    """[(帧, 是否隐藏), …] 键 hide_render。布尔键是常量插值：到下一个键之前一直保持，第一个键之前同第一个键。"""
+def key_hide(ob, frames_states, viewport=False):
+    """[(帧, 是否隐藏), …] 键 hide_render。布尔键是常量插值：到下一个键之前一直保持，第一个键之前同第一个键。
+    viewport=True 时同步键 hide_viewport：用户在窗口里按空格从镜头看时显隐才对（F12 渲染只认 hide_render）。"""
     ob = _obj(ob)
     for f, state in frames_states:
         ob.hide_render = bool(state)
         ob.keyframe_insert("hide_render", frame=f)
+        if viewport:
+            ob.hide_viewport = bool(state)
+            ob.keyframe_insert("hide_viewport", frame=f)
     return ob
+
+
+def view_through(cam=None):
+    """窗口会话里把全部 3D 视窗切到相机视角，着色和 Workbench 渲染一致（SOLID + 物体色），关 overlay，
+    播放按实时速度掉帧。用户要在 Blender 里按空格从镜头看效果时用。cam 给了就先设成场景相机。
+    后台会话没有窗口，返回 0。"""
+    sc = _scene()
+    if cam is not None:
+        sc.camera = _obj(cam)
+    n = 0
+    for win in bpy.context.window_manager.windows:
+        for area in win.screen.areas:
+            if area.type != 'VIEW_3D':
+                continue
+            region = next((r for r in area.regions if r.type == 'WINDOW'), None)
+            sp = area.spaces.active
+            sp.shading.type = 'SOLID'
+            sp.shading.color_type = 'OBJECT'
+            sp.shading.show_shadows = True
+            sp.shading.show_cavity = True
+            sp.overlay.show_overlays = False
+            if sp.region_3d.view_perspective != 'CAMERA':
+                with bpy.context.temp_override(window=win, area=area, region=region, space_data=sp):
+                    bpy.ops.view3d.view_camera()
+            area.tag_redraw()
+            n += 1
+    sc.sync_mode = 'FRAME_DROP'
+    return n
 
 
 def set_alpha(root, frame, alpha, interp="BEZIER"):

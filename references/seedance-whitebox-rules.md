@@ -27,7 +27,7 @@
 
 即梦官网下载，有 Maya、Blender 两版。侧边栏 Jimeng 页签，"相机渲染"或"本地上传"，一键跳到即梦网页。
 
-Higgs 的 Blender 是后台进程，没有界面，用不了插件。本 skill 走图片序列 → ffmpeg。要用插件，把 .blend 交给桌面 Blender（export-verify.md 第 5 节）。
+本 skill 默认走图片序列 → ffmpeg：能从编码后的 mp4 抽帧核对，也能在后期叠闪白、白场。开着窗口的 Blender 也能装插件直传（export-verify.md 第 5 节），装之前先问用户。
 
 ## 5 外部实测（本项目未试）
 

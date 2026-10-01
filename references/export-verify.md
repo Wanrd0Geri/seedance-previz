@@ -40,7 +40,7 @@ fps 24。单段 ≤30 s，即 ≤720 帧。
 - 审看版不渲帧：见第 7 节。
 - mp4 合成并看过逐秒图、首中末图后，`frames/` 挪进废纸篓：macOS `mv "<白模目录>/frames" ~/.Trash/<片名>_frames_<YYMMDD>`；Windows 送回收站（不永久删除）。
 
-在 Higgs 的 bl_execute 里分批渲 png，一次一批，别让单次调用太长。超时用 bl_job_status 查，别盲目重跑（blender-scene）：
+在 `execute_blender_code` 里分批渲 png，一次一批，别让单次调用太长（Workbench 1280×544、千来个物体时 48 帧约 5 秒）。调用超时先用 `get_scene_info` 看 Blender 还连着没有，别盲目重跑：
 
 ```python
 import bpy
@@ -85,7 +85,7 @@ encode.py 做的事：
 <Blender> --background 场景.blend --python $HOME/Documents/Codex/seedance-previz/scripts/check_export.py -- --out 报告.json --grain coarse
 ```
 
-对 Higgs 的活场景：SKILL.md 第 4 节步骤 ⑥ 的代码。
+对窗口里的活场景：SKILL.md 第 4 节步骤 ⑥ 的代码。
 
 读报告：
 
@@ -100,10 +100,10 @@ encode.py 做的事：
 
 ## 5 官方插件替代路线
 
-Higgs 后台跑不了即梦插件。要用插件直传：
+开着窗口的 Blender 可以直接用即梦插件直传：
 
-1. 先 `pv.hide_overlays()`，再 `bl_save_project` 存 .blend。
-2. 用户在桌面 Blender 打开这个 .blend，装即梦官网的 Blender 插件。
+1. 先 `pv.hide_overlays()`，再存 .blend（`bpy.ops.wm.save_as_mainfile(filepath=…, copy=True)`）。
+2. 在这个 Blender 里装即梦官网的 Blender 插件（装插件是改用户配置，先问用户）。
 3. 侧边栏 Jimeng 页签 →"相机渲染"；或"本地上传"，选 encode.py 出的 mp4。
 
 插件"相机渲染"用哪种渲染、带不带 overlay，未核实。传之前看一眼它出的视频。
@@ -134,7 +134,7 @@ python3 -X utf8 $HOME/Documents/Codex/seedance-previz/scripts/encode.py <临时�
 layout 没定稿前只交 .blend 和审看版。审看版 = 干净 mp4 叠字幕和镜号，直接出 mp4，不渲帧（Blender 剪辑器，2026-09-27 试过）：
 
 ```python
-# bl_execute 里
+# execute_blender_code 里
 result = pv.burn_subs("<白模目录>/<片名>_白模运镜_<YYMMDD>-<n>.mp4",
                       "<白模目录>/<片名>_审看_<YYMMDD>-<n>.mp4",
                       phrases=[(196, 211, "芳儿姐", "曲叔，"), ...],

@@ -1,17 +1,17 @@
 ---
 name: seedance-previz
-description: 用 Blender（Higgsfield blender MCP）搭 Seedance 2.5 白模预演，交付符合即梦白模要求的参考视频和给 aigc-video 写提示词用的交接卡。两条路线：已有精模就只做导入、摆放与运镜；没有素材就用几何体搭场景加只留躯体的角色代理。用于"搭白模 / 白模预演 / 用 Blender 做这段的运镜和调度 / 出白模参考视频"。不用于写视频提示词（那是 aigc-video）、精细建模、材质与最终渲染、非 Seedance 的 Blender 工作。
+description: 用 Blender（本机 Blender MCP，连开着窗口的 Blender）搭 Seedance 2.5 白模预演，交付符合即梦白模要求的参考视频和给 aigc-video 写提示词用的交接卡。两条路线：已有精模就只做导入、摆放与运镜；没有素材就用几何体搭场景加只留躯体的角色代理。用于"搭白模 / 白模预演 / 用 Blender 做这段的运镜和调度 / 出白模参考视频"。不用于写视频提示词（那是 aigc-video）、精细建模、材质与最终渲染、非 Seedance 的 Blender 工作。
 ---
 
 # Seedance 白模预演
 
 ## 1 定位
 
-在 Higgsfield 的后台 Blender 里搭白模，交两样东西：一段能直接传即梦的白模参考视频，一张交接卡。
+在 Blender 里搭白模，交两样东西：一段能直接传即梦的白模参考视频，一张交接卡。
 
 分工：aigc-video 写提示词，这边搭模、定机位，两边只靠交接卡连接。aigc-video 的文件只读，不改。做过的案例在 `cases/`。
 
-依赖 Higgsfield 的 Blender MCP（`higgsfield-use-blender`，工具名 `bl_*`），Claude Code 与 Codex 都要注册它。当前宿主调不到 `bl_health` 就停下，告诉用户这个宿主还没注册；不要改用别的 Blender MCP，比如 Codex 里名为 `blender` 的那个连的是开着窗口的 Blender，工具也不同。
+依赖本机的 Blender MCP（Claude Code 与 Codex 里都叫 `blender`；工具 `execute_blender_code`、`get_scene_info`、`get_addon_status`、`get_viewport_screenshot`），它连的是开着窗口的 Blender。调不通先看 Blender 开没开、插件的连接服务开没开；没开就用 `scripts/start_blender_mcp.py` 带窗口启动 Blender（命令见 README）。插件报版本旧、但 `execute_blender_code` 能用，就照常干活。这个插件默认把提示词、代码和截图发给插件方：开工时提醒用户一次，用户要关就调 `disable_telemetry`。
 
 ## 2 两条路线
 
@@ -40,7 +40,7 @@ description: 用 Blender（Higgsfield blender MCP）搭 Seedance 2.5 白模预�
 
 ② **写任务卡**（`references/task-card.md`）。先定谁在哪、朝哪、看哪、光从哪来，按米写坐标，再推每镜机位能看见什么。
 
-③ **开工。** 按 blender-scene 的会话规则：`bl_health` → `bl_get_scene_summary`。场景里已有东西就先存恢复副本；新建的都进 `PREVIZ` 集合，不删不改不相干的物体。在 `bl_execute` 里载入函数库：
+③ **开工。** `get_addon_status` → `get_scene_info`。场景里已有东西就先存恢复副本（`bpy.ops.wm.save_as_mainfile(filepath=…, copy=True)`）；新建的都进 `PREVIZ` 集合，不删不改不相干的物体（默认的 Cube、Light、Camera 只关渲染和显示）。在 `execute_blender_code` 里载入函数库：
 
 ```python
 import sys, os, importlib
@@ -50,13 +50,13 @@ import previz_lib as pv; importlib.reload(pv)
 result = pv.setup_workbench(res=(1280, 544), fps=24, sun_dir=(-0.6, 0.75, 0.3), frame_range=(1, 480))
 ```
 
-每次 `bl_execute` 都从前四行开头：同一个 Blender 进程里模块已加载，重复 import 不会重建场景；进程重连后 sys.path 会丢。`previz_lib.py` 的自测会清场景，只在命令行空白会话里跑；Higgs 会话里照常 import 和调用，只是不跑自测。
+每次 `execute_blender_code` 都从前四行开头：同一个 Blender 进程里模块已加载，重复 import 不会重建场景；Blender 重开后 sys.path 会丢。`previz_lib.py` 的自测会清场景，只在命令行空白会话里跑；窗口会话里照常 import 和调用，只是不跑自测。
 
-④ **搭建或导入。** 先按路线读 Higgs 模块（第 5 节）。A：`bl_import_model` 导入副本，量尺寸，归一化到米。B：按 `references/proxies.md`，用 `mk_box / mk_sphere / mk_cyl / roof / stairs` 搭场景，`torso_proxy` 做角色。
+④ **搭建或导入。** A：导入副本（按格式用 `bpy.ops.wm.append` 或 `bpy.ops.import_scene.*`），量尺寸，归一化到米。B：按 `references/proxies.md`，用 `mk_box / mk_sphere / mk_cyl / roof / stairs` 搭场景，`torso_proxy` 做角色。
 
-⑤ **相机与运镜**（`references/camera-moves.md`）。每镜一台相机：`camera_with_rig` + `aim_to` + `key_rig`；`set_marker_camera` 在切点帧绑相机。
+⑤ **相机与运镜**（`references/camera-moves.md`）。每镜一台相机：`camera_with_rig` + `aim_to` + `key_rig`；`set_marker_camera` 在切点帧绑相机。用户要在 Blender 里按空格从镜头看：`pv.view_through(cam)`；只在某几帧出现的物体（碎块、闪电）用 `pv.key_hide(…, viewport=True)`，窗口播放时显隐才对。
 
-⑥ **逐镜核对。** 每镜起幅、中段、落幅各渲一张（`bl_set_frame` + `bl_render`），打开看（Claude Code 用 Read，Codex 用 view_image）。按稿推算的可见内容和渲出来的对不上，以渲染为准，记进汇报。再跑自查，不通过就修：
+⑥ **逐镜核对。** 每镜起幅、中段、落幅各渲一张（`pv.still(路径, cam=…, frame=…)`），打开看（Claude Code 用 Read，Codex 用 view_image）。`get_viewport_screenshot` 只作辅助，可能停在旧画面，改完先 `bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)` 再截。按稿推算的可见内容和渲出来的对不上，以渲染为准，记进汇报。再跑自查，不通过就修：
 
 ```python
 import sys, os, importlib
@@ -68,16 +68,16 @@ result = ce.run(out_json="/绝对路径/白模_<片名>/<片名>_自查_<YYMMDD>
 
 ⑦ **导出**（`references/export-verify.md`）。png 序列只渲进一个 `frames/`，每版覆盖；只改一镜就只重渲那段。在主机上跑 `scripts/encode.py`（跨平台，命令见 `references/export-verify.md` 第 3 节）出 mp4（分段传首帧、末帧）、逐秒拼图、首中末帧 → 打开看两张图。审看版用 `pv.burn_subs` 在干净 mp4 上叠字幕，不再渲一套帧。
 
-⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bl_save_project` 存 .blend，汇报。定稿后把 `frames/` 和过程版（旧 .blend、.blend1、改镜片段、字幕版）挪进废纸篓，目录只留最终一版：macOS 用 `mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`；Windows 用回收站（PowerShell 的 `Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(路径, 'OnlyErrorDialogs', 'SendToRecycleBin')`，或让用户手动删），不用永久删除。
+⑧ **收尾。** 写交接卡（`references/handoff-card.md`），`bpy.ops.wm.save_as_mainfile(filepath=…, copy=True)` 存 .blend，汇报。定稿后把 `frames/` 和过程版（旧 .blend、.blend1、改镜片段、字幕版）挪进废纸篓，目录只留最终一版：macOS 用 `mv` 进 `~/.Trash/<片名>_白模过程版_<YYMMDD>/`；Windows 用回收站（PowerShell 的 `Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(路径, 'OnlyErrorDialogs', 'SendToRecycleBin')`，或让用户手动删），不用永久删除。
 
-## 5 Higgs 模块怎么读
+## 5 做法要点
 
-开工先读 blender-scene（MCP 要求）。其余按路线读，清单和改动在 `references/higgs-modules.md`：
-
-- A：blender-volatile、blender-lighting-camera（只读相机关）、blender-animation、blender-greybox（只读本地导出）、blender-audit-finalize。
-- B：A 的全部，加 blender-scene-spec、blender-modeling（前五关）、blender-greybox（代理体与每镜记录）；室内再加 blender-camera-blocking（首次会装扩展，先问用户）。
-
-只读要用的段，不整份读全部模块。模块里的云端工具名（`bl_render_motion_reference`、`bl_audit_motion` 等）本地没有，按 blender-volatile 的对照表换本地做法。blender-generation 只在用户点名时走（会花积分）；装 Blender 扩展或改偏好设置先问用户。
+- **会话**：靠渲染帧核对，视窗截图只作辅助；大改前存恢复副本；装 Blender 扩展、插件或改偏好设置先问用户。
+- **搭模（B 路线）**按五关走：轮廓 → 比例（按米核对）→ 层次 → 接触 → 相机读。
+- **动画**：键控制器，不键一堆零碎子物体；插值有意选（贝塞尔缓入缓出 / 线性 / 常量）；旋转模式有意选，防中途翻转。逐帧算出来的复杂运动（沿路线走、按节拍变距离、方位和侧倾）写成一个 .py 放进白模目录，每次 `importlib.reload` 后重键，方便反复调。
+- **相机**：先定主体、焦段、距离、高度；运动建在控制器上（RIG → HEAD → CAM）；一盏结构主光，保留投影。
+- **核对**：从编码后的 mp4 解帧看（encode.py 的 `_首中末.png`），重渲一张不算证据。
+- **Blender 5.x**：F 曲线走动作槽（previz_lib 已处理）；枚举值先读再设，别写死。
 
 ## 6 交付
 

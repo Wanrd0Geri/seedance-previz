@@ -5,7 +5,7 @@
 命令行：
     Blender --background 场景.blend --python check_export.py -- --out 报告.json [--grain coarse|fine] [--chr 名1,名2]
         [--range 首帧 末帧] [--vivid] [--no-pixel]
-Higgs 的 bl_execute 里：
+Blender MCP 的 execute_blender_code 里（开着窗口的 Blender）：
     import sys, os, importlib
     d = os.path.join(os.path.expanduser("~"), "Documents", "Codex", "seedance-previz", "scripts")
     if d not in sys.path: sys.path.insert(0, d)
