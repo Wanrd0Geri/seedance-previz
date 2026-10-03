@@ -227,6 +227,12 @@ def main(argv):
     check(codec == "h264", f"编码 {codec}，mp4")
     if nb != n:
         print(f"  注意    解出 {nb} 帧，输入 {n} 张")
+    # 整秒：播放器把 6.83 秒显示成 6 秒，用户按它选生成时长会截掉尾镜（屋脊打戏 v22，规则页 5.2 节）
+    whole = nb // fps
+    integer_len = nb % fps == 0
+    if not integer_len:
+        print(f"  注意    总长 {nb / fps:.3f} s 不是整秒：播放器会显示成 {whole} 秒，按它选生成时长会截掉尾镜；"
+              f"把总帧数补到 {fps} 的倍数（{(whole + 1) * fps} 帧），多出的帧加在最后一镜尾巴上，不改切点")
 
     # 逐秒拼图：取第 0、1、2… 秒的第一帧，5 列
     sec = (nb + fps - 1) // fps
@@ -250,6 +256,10 @@ def main(argv):
     print(f"      {sec_png}（{sec} 格）")
     print(f"      {fml_png}（第 1、{mid + 1}、{end + 1} 帧）")
     print(f"结论：{fails} 项不合上传限制，改好再传" if fails else "结论：合上传限制")
+    if integer_len:
+        print(f"生成时长：选 {whole} 秒（白模正好 {whole} 秒；汇报第一行照抄这句）")
+    else:
+        print(f"生成时长：白模 {nb / fps:.3f} s 不是整秒，先补到 {whole + 1} 秒再交付")
     print("下一步：打开看两张图")
 
 
